@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Game List</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #3b82f6;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 16px;
+      background: var(--bg-color);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header-section {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* 搜索栏 */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 15px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-sizing: border-box;
+      outline: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    /* 游戏容器 */
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .game-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      transition: border-color 0.2s ease;
+    }
+
+    .game-item:hover {
+      border-color: #cbd5e1;
+    }
+
+    /* 单独游戏卡片 */
+    .game-single {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+    }
+
+    /* 合集标题栏 */
+    details summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      background: #ffffff;
+      transition: background 0.15s ease;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details summary:hover {
+      background: #fbfcfe;
+    }
+
+    .bundle-header {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .game-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .bundle-badge {
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      border: 1px solid #dbeafe;
+    }
+
+    .bundle-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .game-category {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* 平滑旋转折叠箭头 */
+    .arrow-icon {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid #94a3b8;
+      border-bottom: 2px solid #94a3b8;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      margin-left: 4px;
+    }
+
+    details[open] summary .arrow-icon {
+      transform: rotate(-135deg);
+    }
+
+    /* 内部子游戏自适应网格列表 */
+    .sub-game-list {
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      padding: 16px 20px;
+      margin: 0;
+      list-style: none;
+      display: grid;
+      /* 调整最小宽度至 210px，避免过窄 */
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 8px;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .sub-game-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sub-game-list::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* 修复长字数换行问题 */
+    .sub-game-list li {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+      display: flex;
+      align-items: flex-start; /* 多行文本时让圆点与第一行居顶对齐 */
+      line-height: 1.35;        /* 提升多行文字阅读舒适度 */
+      white-space: normal;      /* 允许换行，不再截断 */
+      word-break: break-word;   /* 长单词换行防溢出 */
+      transition: all 0.15s ease;
+    }
+
+    .sub-game-list li::before {
+      content: "•";
+      color: #94a3b8;
+      font-size: 14px;
+      margin-right: 8px;
+      line-height: 1.2;
+      flex-shrink: 0;           /* 防止圆点被长文字挤压变形 */
+    }
+
+    .sub-game-list li:hover {
+      border-color: #94a3b8;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--text-muted);
+      display: none;
+      margin-top: 40px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-section">
+    <h1>🎮 Game Library</h1>
+    <p class="subtitle">Search, Explore and Manage Game Collection</p>
+  </div>
+
+  <!-- 搜索栏 -->
+  <div class="search-wrapper">
+    <input 
+      type="text" 
+      id="searchInput" 
+      class="search-input" 
+      placeholder="Search Games Name..." 
+      onkeyup="searchGame()"
+      autocomplete="off"
+    >
+  </div>
+
+  <div id="gameList" class="game-list">
+
+    <!-- GameHouse Collection -->
+    <div class="game-item">
+      <details id="gamehouseBundle">
+        <summary>
+          <div class="bundle-header">
+            <span class="game-name">GameHouse Games Collection</span>
+            <span class="bundle-badge">129 Games</span>
+          </div>
+          <div class="bundle-meta">
+            <span class="game-category">Classic Arcade</span>
+            <span class="arrow-icon"></span>
+          </div>
+        </summary>
+        
+        <ul class="sub-game-list">
+          <li>Academy of Magic</li>
+          <li>Adventure Inlay</li>
+          <li>Adventure Inlay - Safari Edition</li>
+          <li>Air Strike 3D</li>
+          <li>Alien Sky</li>
+          <li>Aloha Solitaire</li>
+          <li>Aloha TriPeaks</li>
+          <li>Ancient Tri-Jong</li>
+          <li>Ancient Tripeaks</li>
+          <li>Astrobatics</li>
+          <li>Atlantis</li>
+          <li>Atomaders</li>
+          <li>Bejeweled 2</li>
+          <li>Bewitched</li>
+          <li>Big Kahuna Reef</li>
+          <li>Boggle Supreme</li>
+          <li>Bounce Out Blitz</li>
+          <li>Casino Island To Go</li>
+          <li>Chainz</li>
+          <li>Chainz 2 - Relinked</li>
+          <li>Charm Solitaire</li>
+          <li>Charm Tale</li>
+          <li>Chicktionary</li>
+          <li>Chuzzle Deluxe</li>
+          <li>Collapse! Crunch</li>
+          <li>Combo Chaos!</li>
+          <li>Crystal Path</li>
+          <li>Cubis Gold 2</li>
+          <li>Digby's Donuts</li>
+          <li>Diner Dash</li>
+          <li>Feeding Frenzy</li>
+          <li>Fiber Twig</li>
+          <li>Five Card Deluxe</li>
+          <li>Flip Words</li>
+          <li>Flying Leo</li>
+          <li>Fortune Tiles Gold</li>
+          <li>Fresco Wizard</li>
+          <li>GameHouse Sudoku</li>
+          <li>Gearz</li>
+          <li>Granny in Paradise</li>
+          <li>Gutterball</li>
+          <li>Gutterball 2</li>
+          <li>Hamsterball</li>
+          <li>Hello!</li>
+          <li>Holiday Express</li>
+          <li>Iggle Pop!</li>
+          <li>Incadia</li>
+          <li>Incredible Ink</li>
+          <li>Insaniquarium Deluxe</li>
+          <li>Inspector Parker</li>
+          <li>Invadazoid</li>
+          <li>Jewel Quest</li>
+          <li>Lemonade Tycoon</li>
+          <li>Luxor</li>
+          <li>Mad Caps</li>
+          <li>Magic Ball</li>
+          <li>Magic Ball 2</li>
+          <li>Magic Ball 2 - New Worlds</li>
+          <li>Magic Inlay</li>
+          <li>Magic Vines</li>
+          <li>Mah Jong Adventures</li>
+          <li>Mah Jong Medley</li>
+          <li>Mah Jong Quest</li>
+          <li>Mahjong Garden To Go</li>
+          <li>Maui Wowee</li>
+          <li>Nickelodeon Jigsaw</li>
+          <li>Phlinx To Go</li>
+          <li>Pin High Country Club Golf</li>
+          <li>Pizza Frenzy</li>
+          <li>Platypus</li>
+          <li>Poker Superstars</li>
+          <li>Puzzle Express</li>
+          <li>Puzzle Inlay</li>
+          <li>Puzzle Solitaire</li>
+          <li>QBz</li>
+          <li>Reader's Digest Super Word Power</li>
+          <li>Ricochet</li>
+          <li>Ricochet Lost Worlds</li>
+          <li>Ricochet Lost Worlds - Recharged</li>
+          <li>Roller Rush</li>
+          <li>Saints & Sinners Bingo</li>
+          <li>SCRABBLE</li>
+          <li>Shape Shifter</li>
+          <li>Slingo Deluxe</li>
+          <li>Spelvin</li>
+          <li>Splash</li>
+          <li>Spring Sprang Sprung</li>
+          <li>Super 5-Line Slots</li>
+          <li>Super Blackjack!</li>
+          <li>Super Bounce Out!</li>
+          <li>Super Candy Cruncher</li>
+          <li>Super Collapse!</li>
+          <li>Super Collapse! II</li>
+          <li>Super Collapse! II Platinum</li>
+          <li>Super Fruit Frolic</li>
+          <li>Super GameHouse Solitaire Vol. 1</li>
+          <li>Super GameHouse Solitaire Vol. 2</li>
+          <li>Super GameHouse Solitaire Vol. 3</li>
+          <li>Super Gem Drop</li>
+          <li>Super Glinx!</li>
+          <li>Super Jigsaw</li>
+          <li>Super Letter Linker</li>
+          <li>Super Mah Jong Solitaire</li>
+          <li>Super Nisqually</li>
+          <li>Super PileUp!</li>
+          <li>Super Pool</li>
+          <li>Super Pop & Drop!</li>
+          <li>Super Rumble Cube</li>
+          <li>Super SpongeBob Collapse!</li>
+          <li>Super TextTwist</li>
+          <li>Super WHATword</li>
+          <li>Super Wild Wild Words</li>
+          <li>Tap a Jam</li>
+          <li>Ten Pin Championship Bowling Pro</li>
+          <li>Tennis Titans</li>
+          <li>Tradewinds 2</li>
+          <li>Trivia Machine</li>
+          <li>Tropical Swaps</li>
+          <li>Tumblebugs</li>
+          <li>Turtle Bay</li>
+          <li>Twistingo</li>
+          <li>Ultimate Dominoes</li>
+          <li>Varmintz Deluxe</li>
+          <li>Walls of Jericho</li>
+          <li>Wheel of Fortune</li>
+          <li>Word Jolt</li>
+          <li>Word Slinger</li>
+          <li>Wordjong To Go</li>
+          <li>Zuma Deluxe</li>
+        </ul>
+      </details>
+    </div>
+
+    <!-- BigFish Games Collection -->
+    <div class="game-item">
+      <details id="bigfishBundle">
+        <summary>
+          <div class="bundle-header">
+            <span class="game-name">BigFish Games Collection</span>
+            <span class="bundle-badge">213 Games</span>
+          </div>
+          <div class="bundle-meta">
+            <span class="game-category">Casual / Puzzle</span>
+            <span class="arrow-icon"></span>
+          </div>
+        </summary>
+        
+        <ul class="sub-game-list">
+          <li>5 Card Slingo Deluxe</li>
+          <li>5 Spots II</li>
+          <li>7 Wonders of the World</li>
+          <li>10 Talismans</li>
+          <li>A Series of Unfortunate Events</li>
+          <li>After the End</li>
+          <li>Alien Shooter</li>
+          <li>Alien Stars</li>
+          <li>Ancient 4 in 1 GamePak</li>
+          <li>Ancient Spiders</li>
+          <li>Ancient Sudoku</li>
+          <li>Ancient TriJong</li>
+          <li>Aquadum</li>
+          <li>Aquamania</li>
+          <li>Arcalands</li>
+          <li>Arcamania</li>
+          <li>Arcamania 2</li>
+          <li>Arctic Quest</li>
+          <li>Atlantis Quest</li>
+          <li>Atomixer</li>
+          <li>Axuus</li>
+          <li>Balloon Express</li>
+          <li>Battle Castles</li>
+          <li>Beetle Bomp</li>
+          <li>Beezzle</li>
+          <li>Best Gift</li>
+          <li>BeTrapped!</li>
+          <li>Big Kahuna Words</li>
+          <li>Bistro Stars</li>
+          <li>Blox Forever Deluxe</li>
+          <li>Bongo Boogie</li>
+          <li>Book Bind</li>
+          <li>Boxy Goxy</li>
+          <li>Bricks of Atlantis</li>
+          <li>Bricks Of Egypt</li>
+          <li>Brickster</li>
+          <li>Brix Quest</li>
+          <li>Bubble Golden Pack</li>
+          <li>Bubblefish Bob</li>
+          <li>Bud Redhead</li>
+          <li>Bursting Bubbles</li>
+          <li>BVS Solitaire Collection</li>
+          <li>Cactus Bruce And The Corporate Monkeys</li>
+          <li>Captain Chromax</li>
+          <li>Castle of Cards</li>
+          <li>Chainz</li>
+          <li>Chainz 2 Relinked</li>
+          <li>Charm Tale</li>
+          <li>Chicken Invaders 2</li>
+          <li>Chicken Rush</li>
+          <li>City Magnate</li>
+          <li>Cubis Gold 2</li>
+          <li>Cutetrix</li>
+          <li>D-Bug</li>
+          <li>DDD Pool</li>
+          <li>Desperate Space</li>
+          <li>Digger Adventures</li>
+          <li>Don't Get Angry 2</li>
+          <li>Dr Germ</li>
+          <li>Dream Solitaire</li>
+          <li>Drop Heads</li>
+          <li>Druids - Battle of Magic</li>
+          <li>Easter Bonus</li>
+          <li>Elite Jigsaw Puzzle</li>
+          <li>Elythril The Elf Treasure</li>
+          <li>Fairies</li>
+          <li>Fast Food Zoo</li>
+          <li>Feelers</li>
+          <li>Fiber Twig</li>
+          <li>Fiber Twig 2</li>
+          <li>Filler</li>
+          <li>Fireman</li>
+          <li>Fireworks Extravaganza</li>
+          <li>Fish Tycoon</li>
+          <li>Flip or Flop Home Edition</li>
+          <li>Fortune Tiles Gold</li>
+          <li>Foxy Jumper 2 Winter Adventures</li>
+          <li>Froggy Castle</li>
+          <li>Froggy Castle 2</li>
+          <li>Frootz</li>
+          <li>Fun Freight</li>
+          <li>Funkiball Adventure</li>
+          <li>Funky Farm Thanksgiving Edition</li>
+          <li>Funpark Fortune</li>
+          <li>Garden Dreams</li>
+          <li>Gem Shop</li>
+          <li>Gold Miner Vegas</li>
+          <li>Golden Dozen Solitaire</li>
+          <li>Gravity</li>
+          <li>Gutterball 2</li>
+          <li>Hexvex</li>
+          <li>Ice Puzzle Deluxe</li>
+          <li>Incadia</li>
+          <li>Incredible Ink</li>
+          <li>Infinite Jigsaw Puzzle</li>
+          <li>Inspector Parker</li>
+          <li>InSpheration</li>
+          <li>Island Wars 2</li>
+          <li>Jay The Danger Fly</li>
+          <li>Jelly Boom</li>
+          <li>Jewel of Atlantis</li>
+          <li>Jewel Quest</li>
+          <li>Kaijin</li>
+          <li>Kick Shot Pool</li>
+          <li>Kind Against the Wicked</li>
+          <li>King Tut's Treasure</li>
+          <li>Legend of Aladdin</li>
+          <li>LEGO Builder Bots</li>
+          <li>LexiCastle</li>
+          <li>Lines Deluxe</li>
+          <li>LinkTile</li>
+          <li>Little Gods</li>
+          <li>Logic Trap</li>
+          <li>Lucky Flower</li>
+          <li>Lucky Streak Poker</li>
+          <li>Luxor Amun Rising</li>
+          <li>Machi Paco</li>
+          <li>Magic Match</li>
+          <li>Magic Seal</li>
+          <li>Magic Vines</li>
+          <li>Mah-Jomino</li>
+          <li>MahJong Adventures</li>
+          <li>Mahjong Century</li>
+          <li>Mahjong Holidays 2005</li>
+          <li>Mahjong Mania</li>
+          <li>Mahjong Match</li>
+          <li>Mahjongg Variations</li>
+          <li>Master of Defense</li>
+          <li>MaxGammon</li>
+          <li>MaxJongg</li>
+          <li>Meeklits</li>
+          <li>Mega Monty</li>
+          <li>Memory Loops</li>
+          <li>Mighty Rodent</li>
+          <li>Mortimer and the Enchanted Castle</li>
+          <li>Mosaic Tomb of Mystery</li>
+          <li>Mystery Case Files - Huntsville</li>
+          <li>Mystery Case Files - Prime Suspects</li>
+          <li>Mystic Inn</li>
+          <li>Nano Pipeline</li>
+          <li>Napad</li>
+          <li>Navigatris</li>
+          <li>Nebulas Puzzle Adventure</li>
+          <li>Panda Craze</li>
+          <li>Pat Sajak's Lucky Letters</li>
+          <li>Pipsoh!</li>
+          <li>Platypus</li>
+          <li>Puppy Luv</li>
+          <li>QBeez 2</li>
+          <li>Qua Qua</li>
+          <li>Rainbow Web</li>
+          <li>Real Jigsaw Puzzle</li>
+          <li>Reef Raff</li>
+          <li>Ricochet Lost Worlds</li>
+          <li>Ricochet Recharged</li>
+          <li>RiotBall</li>
+          <li>Roller Rush</li>
+          <li>Rotate Mania Deluxe</li>
+          <li>Rumble Cube</li>
+          <li>Runic One</li>
+          <li>Serpengo</li>
+          <li>Shape Solitaire</li>
+          <li>Shapo Gold</li>
+          <li>Shattera</li>
+          <li>Sky Bubbles</li>
+          <li>Sky Tracks</li>
+          <li>Smash Frenzy 2</li>
+          <li>Spacebound</li>
+          <li>Spellunker</li>
+          <li>Spin and Win</li>
+          <li>Star Defender 2</li>
+          <li>Strike Ball 2</li>
+          <li>Sudoku Challenge</li>
+          <li>Sudoku Pagoda</li>
+          <li>Superstar Chefs</li>
+          <li>Swap and Fall 2</li>
+          <li>Tanks 3D Reign of Steel</li>
+          <li>Teddy Factory</li>
+          <li>The Great Mahjong</li>
+          <li>The Lost City of Gold</li>
+          <li>The Odyssey - Winds of Athena</li>
+          <li>Thomas and the Magical Words</li>
+          <li>Thwart Poker</li>
+          <li>Tiki Boom Boom</li>
+          <li>Time Breaker</li>
+          <li>Tinos Fruit Stand</li>
+          <li>Totem Treasure</li>
+          <li>Tournament Poker</li>
+          <li>Treasure Island</li>
+          <li>Triblettes</li>
+          <li>Trylink</li>
+          <li>Tumblebugs</li>
+          <li>Twilight Mahjongg</li>
+          <li>UltraBall</li>
+          <li>Vegans Veganians</li>
+          <li>Virus</li>
+          <li>wArcanoid V The Solar System</li>
+          <li>Water in Fire 2</li>
+          <li>Weave Words</li>
+          <li>Wik and The Fable of Souls</li>
+          <li>Wild West Ransom</li>
+          <li>Witchy Wins</li>
+          <li>Wonderland</li>
+          <li>Wonderlines</li>
+          <li>Word Challenge Extreme!</li>
+          <li>Word Emperor</li>
+          <li>Word Search Deluxe</li>
+          <li>Word Travels</li>
+          <li>Word Zen</li>
+          <li>Wordigo</li>
+          <li>Xmas Bonus</li>
+          <li>Zam BeeZee</li>
+          <li>ZenBall</li>
+        </ul>
+      </details>
+    </div>
+
+    <!-- PopCap Games Collection -->
+    <div class="game-item">
+      <details id="Popcapbundle">
+        <summary>
+          <div class="bundle-header">
+            <span class="game-name">PopCap Games Collection</span>
+            <span class="bundle-badge">46 Games</span>
+          </div>
+          <div class="bundle-meta">
+            <span class="game-category">Arcade Classics</span>
+            <span class="arrow-icon"></span>
+          </div>
+        </summary>
+        
+        <ul class="sub-game-list">
+          <li>Alchemy Deluxe</li>
+          <li>Amazing Adventures Around The World</li>
+          <li>Amazing Adventures The Lost Tomb</li>
+          <li>AstroPop Deluxe</li>
+          <li>Atomica Deluxe</li>
+          <li>Bejeweled 2 Deluxe</li>
+          <li>Bejeweled Deluxe</li>
+          <li>Bejeweled Twist</li>
+          <li>Big Money Deluxe</li>
+          <li>Bonnie's Bookstore Deluxe</li>
+          <li>Bookworm Adventures Deluxe</li>
+          <li>Bookworm Deluxe</li>
+          <li>Chuzzle Deluxe</li>
+          <li>Cosmic Bugs</li>
+          <li>Dynomite Deluxe</li>
+          <li>Escape Rosecliff Island</li>
+          <li>Feeding Frenzy 2 Deluxe</li>
+          <li>Feeding Frenzy Deluxe</li>
+          <li>Hammer Heads Deluxe</li>
+          <li>Heavy Weapon Deluxe</li>
+          <li>Iggle Pop Deluxe</li>
+          <li>Insaniquarium Deluxe</li>
+          <li>Mahjong Escape Ancient China</li>
+          <li>Mahjong Escape Ancient Japan</li>
+          <li>Mummy Maze Deluxe</li>
+          <li>Mystery PI - The Lottery Ticket</li>
+          <li>Mystery PI - The New York Fortune</li>
+          <li>Mystery PI - The Vegas Heist</li>
+          <li>NingPo MahJong Deluxe</li>
+          <li>Noah's Ark Deluxe</li>
+          <li>Peggle Deluxe</li>
+          <li>Peggle Nights Deluxe</li>
+          <li>Peggle World of Warcraft Edition</li>
+          <li>Pixelus Deluxe</li>
+          <li>Pizza Frenzy</li>
+          <li>Plants vs Zombies</li>
+          <li>Rocket Mania Deluxe</li>
+          <li>Seven Seas Deluxe</li>
+          <li>Talismania Deluxe</li>
+          <li>The Wizard's Pen</li>
+          <li>TipTop Deluxe</li>
+          <li>Typer Shark Deluxe</li>
+          <li>Venice Deluxe</li>
+          <li>Water Bugs</li>
+          <li>Word Harmony Deluxe</li>
+          <li>Zuma Deluxe</li>
+        </ul>
+      </details>
+    </div>
+
+    <!-- Kairosoft Games Collection -->
+    <div class="game-item">
+      <details id="KaisoftBundle">
+        <summary>
+          <div class="bundle-header">
+            <span class="game-name">Kairosoft Games Collection</span>
+            <span class="bundle-badge">53 Games</span>
+          </div>
+          <div class="bundle-meta">
+            <span class="game-category">Pixel Simulation</span>
+            <span class="arrow-icon"></span>
+          </div>
+        </summary>
+        
+        <ul class="sub-game-list">
+          <li>8-Bit Farm</li>
+          <li>Anime Studio Story</li>
+          <li>Basketball Club Story</li>
+          <li>Beastie Bay DX</li>
+          <li>Biz Builder Delux</li>
+          <li>Boxing Gym Story</li>
+          <li>Burger Bistro Story</li>
+          <li>Cafe Master Story</li>
+          <li>Cafeteria Nipponica</li>
+          <li>Convenience Stories</li>
+          <li>Dream House Days DX</li>
+          <li>Dream Park Story</li>
+          <li>Dream Town Island</li>
+          <li>Dungeon Village</li>
+          <li>Dungeon Village 2</li>
+          <li>Epic Astro Story</li>
+          <li>Forest Camp Story</li>
+          <li>Forest Golf Planner</li>
+          <li>Game Dev Story</li>
+          <li>Grand Prix Story</li>
+          <li>High Sea Saga DX</li>
+          <li>Home Run High</li>
+          <li>Hot Springs Story</li>
+          <li>Hot Springs Story 2</li>
+          <li>Jumbo Airport Story</li>
+          <li>Kairobotica</li>
+          <li>Magazine Mogul</li>
+          <li>March To A Million</li>
+          <li>Mega Mall Story</li>
+          <li>Mega Mall Story 2</li>
+          <li>Ninja Village</li>
+          <li>Oh Edo Towns</li>
+          <li>Pocket Academy</li>
+          <li>Pocket Academy 3</li>
+          <li>Pocket Arcade Story</li>
+          <li>Pocket Clothier</li>
+          <li>Pocket Harvest</li>
+          <li>Pocket League Story</li>
+          <li>Pocket Stables</li>
+          <li>Pool Slide Story</li>
+          <li>Shiny Ski Resort</li>
+          <li>Silver Screen Story</li>
+          <li>Station Manager</li>
+          <li>Tennis Club Story</li>
+          <li>The Manga Works</li>
+          <li>The Pyraplex</li>
+          <li>The Ramen Sensei</li>
+          <li>The Sushi Spinnery</li>
+          <li>Tropical Resort Story</li>
+          <li>Venture Towns</li>
+          <li>Wild Park Manager</li>
+          <li>World Cruise Story</li>
+          <li>Zoo Park Story</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+
+  <div id="noMatch" class="empty-msg">No matching games or bundles found.</div>
+
+  <script>
+    function searchGame() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+      const items = document.querySelectorAll('.game-item');
+      let anyFound = false;
+
+      items.forEach(item => {
+        const details = item.querySelector('details');
+
+        if (!details) {
+          const isMatch = item.textContent.toLowerCase().includes(keyword);
+          item.style.display = isMatch ? 'block' : 'none';
+          if (isMatch) anyFound = true;
+          return;
+        }
+
+        const summaryText = details.querySelector('summary').textContent.toLowerCase();
+        const subItems = details.querySelectorAll('.sub-game-list li');
+        let bundleMatched = false;
+
+        if (keyword === "") {
+          item.style.display = 'block';
+          details.open = false;
+          subItems.forEach(li => li.style.display = 'flex');
+          anyFound = true;
+          return;
+        }
+
+        const isTitleMatch = summaryText.includes(keyword);
+
+        subItems.forEach(li => {
+          const isLiMatch = li.textContent.toLowerCase().includes(keyword);
+          if (isTitleMatch || isLiMatch) {
+            li.style.display = 'flex';
+            bundleMatched = true;
+          } else {
+            li.style.display = 'none';
+          }
+        });
+
+        if (bundleMatched || isTitleMatch) {
+          item.style.display = 'block';
+          details.open = true;
+          anyFound = true;
+        } else {
+          item.style.display = 'none';
+          details.open = false;
+        }
+      });
+
+      document.getElementById('noMatch').style.display = anyFound ? 'none' : 'block';
+    }
+  </script>
+
+</body>
+</html>
